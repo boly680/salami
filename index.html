@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salami Diben Koto?</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #1a5c38;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 30px 20px 40px;
+    font-family: 'Nunito', sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(2rem, 8vw, 3rem);
+    font-weight: 800;
+    color: #f5c518;
+    text-align: center;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    text-shadow: 2px 3px 0px rgba(0,0,0,0.25);
+  }
+
+  .subtitle {
+    color: #e0f0e0;
+    font-size: clamp(1rem, 4vw, 1.2rem);
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 600;
+  }
+
+  .wheel-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Pointer arrow */
+  .pointer {
+    width: 0;
+    height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-top: 38px solid #f5c518;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    z-index: 10;
+    margin-bottom: -2px;
+  }
+
+  .wheel-outer {
+    width: min(340px, 90vw);
+    height: min(340px, 90vw);
+    border-radius: 50%;
+    background: #f5c518;
+    padding: 8px;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.4), inset 0 0 0 3px rgba(255,255,255,0.15);
+  }
+
+  canvas {
+    border-radius: 50%;
+    display: block;
+  }
+
+  .spin-btn {
+    margin-top: 30px;
+    padding: 16px 50px;
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f5c518, #e6a800);
+    color: #1a3a1a;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 2px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .spin-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .spin-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Result modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.show { display: flex; }
+
+  .result-box {
+    background: #1a5c38;
+    border: 4px solid #f5c518;
+    border-radius: 24px;
+    padding: 36px 30px;
+    text-align: center;
+    max-width: 300px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .result-emoji { font-size: 3rem; margin-bottom: 10px; }
+  .result-title {
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.6rem;
+    color: #f5c518;
+    margin-bottom: 8px;
+  }
+  .result-msg {
+    color: #d0efd0;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .close-btn {
+    background: #f5c518;
+    color: #1a3a1a;
+    border: none;
+    border-radius: 30px;
+    padding: 10px 32px;
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>Salami Lage Naki?</h1>
+<p class="subtitle">Spin the wheel to claim your Eid Salami! 🌸</p>
+
+<div class="wheel-wrapper">
+  <div class="pointer"></div>
+  <div class="wheel-outer">
+    <canvas id="wheel"></canvas>
+  </div>
+</div>
+
+<button class="spin-btn" id="spinBtn" onclick="spin()">SPIN!</button>
+
+<div class="overlay" id="overlay">
+  <div class="result-box">
+    <div class="result-emoji">🤲</div>
+    <div class="result-title">Alhamduillah</div>
+    <div class="result-msg">You Have Won Unlimited Dua!</div>
+    <button class="close-btn" onclick="closeModal()">Try Again</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+
+// Set canvas size based on container
+const size = Math.min(340, window.innerWidth * 0.9) - 16;
+canvas.width = size;
+canvas.height = size;
+
+const cx = size / 2;
+const cy = size / 2;
+const radius = size / 2 - 2;
+
+// Segments — "Dua" is index 0 (top-right position)
+const segments = [
+  { label: 'Dua',   color: '#f5a623' },  // index 0 — TARGET
+  { label: '2 tk',  color: '#e05c3a' },
+  { label: '5 tk',  color: '#4caf50' },
+  { label: '10 tk', color: '#3b6fce' },
+  { label: '50 tk', color: '#e91e8c' },
+  { label: '100 tk',color: '#29cce0' },
+];
+
+const numSegs = segments.length;
+const segAngle = (2 * Math.PI) / numSegs;
+
+let currentAngle = 0;
+let isSpinning = false;
+
+function drawWheel(rotation) {
+  ctx.clearRect(0, 0, size, size);
+
+  for (let i = 0; i < numSegs; i++) {
+    const startAngle = rotation + i * segAngle - Math.PI / 2;
+    const endAngle = startAngle + segAngle;
+    const midAngle = startAngle + segAngle / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = segments[i].color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(midAngle);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${size * 0.062}px Nunito, sans-serif`;
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(segments[i].label, radius * 0.82, size * 0.022);
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.08, 0, 2 * Math.PI);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.strokeStyle = '#f5c518';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+drawWheel(0);
+
+function spin() {
+  if (isSpinning) return;
+  isSpinning = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  /*
+   * HOW THE RIGGING WORKS:
+   * The wheel draws segment[i] starting at: rotation + i*segAngle - π/2
+   * Segment 0 (Dua) occupies angles: [rotation - π/2]  to  [rotation - π/2 + segAngle]
+   * Its midpoint is at:  rotation - π/2 + segAngle/2
+   *
+   * The pointer sits at the TOP of the canvas = angle 0 in canvas coords
+   * (canvas arc 0 = 3 o'clock, but we subtract π/2 so our 0 = 12 o'clock = top).
+   *
+   * For Dua's midpoint to be at the top (angle = -π/2 in raw canvas terms):
+   *   rotation - π/2 + segAngle/2 = -π/2
+   *   rotation = -segAngle/2
+   *   rotation = -(π/3)   [since segAngle = 2π/6 = π/3]
+   *
+   * We always land on this exact angle (mod 2π), after several full spins.
+   */
+  const duaTarget = -segAngle / 2; // exact rotation so Dua centres under pointer
+
+  // Always start fresh from 0 visually so math stays clean
+  const fullSpins = (6 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
+  const totalRotation = fullSpins + duaTarget; // positive big number ending at duaTarget
+
+  const duration = 4500;
+  const startTime = performance.now();
+
+  function easeOut(t) {
+    return 1 - Math.pow(1 - t, 4);
+  }
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    currentAngle = easeOut(t) * totalRotation;
+    drawWheel(currentAngle);
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      currentAngle = duaTarget;
+      drawWheel(currentAngle);
+      isSpinning = false;
+      setTimeout(() => {
+        document.getElementById('overlay').classList.add('show');
+      }, 500);
+    }
+  }
+
+  // Reset angle to 0 each spin so accumulation never drifts
+  currentAngle = 0;
+  requestAnimationFrame(animate);
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('spinBtn').disabled = false;
+}
+</script>
+</body>
+</html>
